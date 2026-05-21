@@ -1,0 +1,236 @@
+{
+  "name": "corvus9312-bookreader",
+  "displayName": "Corvus9312 BookReader",
+  "description": "A comfortable TXT reader with chapter navigation, custom fonts, and reading progress",
+  "version": "0.1.0",
+  "publisher": "corvus",
+  "engines": { "vscode": "^1.74.0" },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Corvus9312 BookReader",
+      "properties": {
+        "corvusTxtReader.driveFolderUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Google Drive 書庫根目錄連結（留空則從 My Drive 根目錄開始）"
+        },
+        "corvusTxtReader.openIn": {
+          "type": "string",
+          "default": "panel",
+          "enum": ["editor", "panel"],
+          "enumDescriptions": [
+            "在主要編輯區開啟（標籤頁）",
+            "在下方面板開啟（可拖曳至主側邊欄或次側邊欄）"
+          ],
+          "description": "選擇 TXT 檔案的預設開啟位置"
+        }
+      }
+    },
+    "customEditors": [
+      {
+        "viewType": "corvusTxtReader.reader",
+        "displayName": "Corvus9312 BookReader",
+        "selector": [{ "filenamePattern": "*.txt" }],
+        "priority": "default"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "corvus-txt-reader",
+          "title": "Corvus9312 BookReader",
+          "icon": "media/icon.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "corvus-reader-panel",
+          "title": "Corvus9312 BookReader",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "corvus-txt-reader": [
+        {
+          "id": "corvusTxtReader.folders",
+          "name": "書庫"
+        },
+        {
+          "id": "corvusTxtReader.library",
+          "name": "最近閱讀"
+        },
+        {
+          "id": "corvusTxtReader.drive",
+          "name": "Google Drive"
+        }
+      ],
+      "corvus-reader-panel": [
+        {
+          "id": "corvusTxtReader.readerView",
+          "name": "Corvus9312 BookReader",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "corvusTxtReader.openFile",
+        "title": "TXT Reader: 開啟檔案"
+      },
+      {
+        "command": "corvusTxtReader.addFolder",
+        "title": "新增資料夾",
+        "icon": "$(add)"
+      },
+      {
+        "command": "corvusTxtReader.removeFolder",
+        "title": "移除資料夾",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "corvusTxtReader.refreshFolders",
+        "title": "重新整理",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "corvusTxtReader.clearLibrary",
+        "title": "清空最近閱讀",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "corvusTxtReader.driveSignIn",
+        "title": "登入 Google Drive",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "corvusTxtReader.driveSignOut",
+        "title": "登出 Google Drive",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "corvusTxtReader.refreshDrive",
+        "title": "重新整理",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "corvusTxtReader.openDriveFile",
+        "title": "開啟 Drive 檔案"
+      },
+      {
+        "command": "corvusTxtReader.resetFileProgress",
+        "title": "重置閱讀進度"
+      },
+      {
+        "command": "corvusTxtReader.resetFolderProgress",
+        "title": "重置資料夾所有進度"
+      },
+      {
+        "command": "corvusTxtReader.resetDriveFileProgress",
+        "title": "重置閱讀進度"
+      },
+      {
+        "command": "corvusTxtReader.setDriveRoot",
+        "title": "進入此資料夾"
+      },
+      {
+        "command": "corvusTxtReader.driveGoUp",
+        "title": "回上一層",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "corvusTxtReader.resetDriveRoot",
+        "title": "回到最上層"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "corvusTxtReader.addFolder",
+          "when": "view == corvusTxtReader.folders",
+          "group": "navigation"
+        },
+        {
+          "command": "corvusTxtReader.refreshFolders",
+          "when": "view == corvusTxtReader.folders",
+          "group": "navigation"
+        },
+        {
+          "command": "corvusTxtReader.clearLibrary",
+          "when": "view == corvusTxtReader.library",
+          "group": "navigation"
+        },
+        {
+          "command": "corvusTxtReader.driveSignIn",
+          "when": "view == corvusTxtReader.drive",
+          "group": "navigation"
+        },
+        {
+          "command": "corvusTxtReader.driveSignOut",
+          "when": "view == corvusTxtReader.drive",
+          "group": "navigation"
+        },
+        {
+          "command": "corvusTxtReader.refreshDrive",
+          "when": "view == corvusTxtReader.drive",
+          "group": "navigation"
+        },
+        {
+          "command": "corvusTxtReader.driveGoUp",
+          "when": "view == corvusTxtReader.drive && corvusTxtReader.driveCanGoUp",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "corvusTxtReader.removeFolder",
+          "when": "view == corvusTxtReader.folders && viewItem == txtFolder",
+          "group": "inline"
+        },
+        {
+          "command": "corvusTxtReader.resetFileProgress",
+          "when": "view == corvusTxtReader.folders && viewItem == txtFile",
+          "group": "2_progress"
+        },
+        {
+          "command": "corvusTxtReader.resetFolderProgress",
+          "when": "view == corvusTxtReader.folders && viewItem == txtFolder",
+          "group": "2_progress"
+        },
+        {
+          "command": "corvusTxtReader.resetDriveFileProgress",
+          "when": "view == corvusTxtReader.drive && viewItem == driveFile",
+          "group": "2_progress"
+        },
+        {
+          "command": "corvusTxtReader.setDriveRoot",
+          "when": "view == corvusTxtReader.drive && viewItem == driveFolder",
+          "group": "navigation"
+        },
+        {
+          "command": "corvusTxtReader.driveGoUp",
+          "when": "view == corvusTxtReader.drive && corvusTxtReader.driveCanGoUp",
+          "group": "navigation"
+        },
+        {
+          "command": "corvusTxtReader.resetDriveRoot",
+          "when": "view == corvusTxtReader.drive && corvusTxtReader.driveCanGoUp",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "^16.0.0",
+    "typescript": "^5.0.0"
+  }
+}
