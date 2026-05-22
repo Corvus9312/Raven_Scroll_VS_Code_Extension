@@ -60,25 +60,27 @@ export function buildReaderHtml(webview: vscode.Webview, extensionUri: vscode.Ur
   <div id="main">
     <div id="toolbar">
       <button id="btn-sidebar" title="目錄 (Ctrl+\\)">☰</button>
-      <div class="sep"></div>
-      <button id="btn-font-dec" title="縮小字體">A−</button>
-      <span id="font-label">18</span>
-      <button id="btn-font-inc" title="放大字體">A+</button>
-      <div class="sep"></div>
-      <button id="btn-lh-dec" title="縮小行距">↕−</button>
-      <span id="lh-label">2.1</span>
-      <button id="btn-lh-inc" title="放大行距">↕+</button>
-      <div class="sep"></div>
-      <select id="font-select" title="字型">
-        <option value="lxgw">霞鶩文楷</option>
-        <option value="serif">明體</option>
-        <option value="sans">黑體</option>
-        <option value="kaiti">楷體</option>
-        <option value="fangsong">仿宋</option>
-        <option value="cutive">Cutive Mono</option>
-      </select>
-      <div class="sep"></div>
-      <button id="btn-theme" title="切換深色／淺色">◑</button>
+      <div class="toolbar-group">
+        <button id="btn-font-dec" title="縮小字體">A−</button>
+        <span id="font-label">14</span>
+        <button id="btn-font-inc" title="放大字體">A+</button>
+      </div>
+      <div class="toolbar-group">
+        <button id="btn-lh-dec" title="縮小行距">↕−</button>
+        <span id="lh-label">1.3</span>
+        <button id="btn-lh-inc" title="放大行距">↕+</button>
+      </div>
+      <div class="toolbar-group">
+        <select id="font-select" title="字型">
+          <option value="lxgw">霞鶩文楷</option>
+          <option value="serif">明體</option>
+          <option value="sans">黑體</option>
+          <option value="kaiti">楷體</option>
+          <option value="fangsong">仿宋</option>
+          <option value="cutive">Cutive Mono</option>
+        </select>
+        <button id="btn-theme" title="切換深色／淺色">◑</button>
+      </div>
       <div class="spacer"></div>
       <span id="progress-label">0%</span>
     </div>

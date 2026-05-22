@@ -23,6 +23,10 @@
   let scrollTimer = null;
   let nextFileRequested = false;
 
+  // Maintained after scroll settles; used to restore position on resize events
+  let liveAnchor = null;
+  let anchorRefreshTimer = null;
+
   const $ = (id) => document.getElementById(id);
 
   const nextBookBanner = $('next-book-banner');
@@ -77,8 +81,8 @@
     currentUriKey = uriKey ?? '';
     nextFileRequested = false;
     nextBookBanner.style.display = 'none';
-    fontSize   = prefs.fontSize   ?? 18;
-    lineHeight = prefs.lineHeight ?? 2.1;
+    fontSize   = prefs.fontSize   ?? 14;
+    lineHeight = prefs.lineHeight ?? 1.3;
     fontFamily = prefs.fontFamily ?? 'serif';
     theme      = prefs.theme      ?? 'dark';
 
@@ -95,16 +99,60 @@
     loadingEl.style.display = 'none';
     contentEl.style.display = 'block';
 
+    liveAnchor = null; // reset anchor for new file
+
     if (savedProgress > 0) {
       requestAnimationFrame(() => {
         readerScroll.scrollTop = savedProgress;
         updateProgress();
         syncActiveChapter();
+        liveAnchor = captureScrollAnchor();
       });
     } else {
       updateProgress();
+      liveAnchor = captureScrollAnchor();
     }
   }
+
+  // ── Scroll anchor ────────────────────────────────────────────────────────────
+  // Uses caretRangeFromPoint to pin the exact character at the top of the
+  // visible area before a layout change, then scrolls it back to the same
+  // visual position afterwards.
+  function captureScrollAnchor() {
+    if (readerScroll.scrollTop < 5) { return null; }
+    const rect = readerScroll.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + 4;
+    if (document.caretRangeFromPoint) {
+      const range = document.caretRangeFromPoint(x, y);
+      if (range) { return { range, anchorY: y }; }
+    }
+    return null;
+  }
+
+  function restoreScrollAnchor(anchor) {
+    if (!anchor) { return; }
+    const rect = anchor.range.getBoundingClientRect();
+    if (rect.height === 0) { return; } // range no longer in DOM
+    readerScroll.scrollTop += rect.top - anchor.anchorY;
+  }
+
+  function scheduleAnchorRefresh() {
+    clearTimeout(anchorRefreshTimer);
+    anchorRefreshTimer = setTimeout(() => { liveAnchor = captureScrollAnchor(); }, 80);
+  }
+
+  // Restore top line whenever the panel is resized externally.
+  // ResizeObserver fires post-layout (before paint) so getBoundingClientRect
+  // already reflects new dimensions — no rAF needed, and restoration is
+  // idempotent so both observers can safely call the same handler.
+  function handleResize() {
+    if (!liveAnchor) { return; }
+    restoreScrollAnchor(liveAnchor);
+    scheduleAnchorRefresh();
+  }
+  new ResizeObserver(handleResize).observe(readerScroll);
+  window.addEventListener('resize', handleResize);
 
   // ── Chapter detection ───────────────────────────────────────────────────────
   const PATTERNS = [
@@ -212,6 +260,7 @@
   // ── Scroll ──────────────────────────────────────────────────────────────────
   readerScroll.addEventListener('scroll', () => {
     updateProgress();
+    scheduleAnchorRefresh();
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       vscode.postMessage({ type: 'saveProgress', scrollTop: readerScroll.scrollTop, percent: currentPercent(), uriKey: currentUriKey });
@@ -240,31 +289,55 @@
   });
 
   // ── Toolbar ─────────────────────────────────────────────────────────────────
-  btnSidebar.addEventListener('click', () => sidebar.classList.toggle('open'));
-  btnClose.addEventListener('click', closeSidebar);
+
+  // Sidebar toggle: set liveAnchor so the resize events during CSS transition
+  // restore the correct position.
+  btnSidebar.addEventListener('click', () => {
+    liveAnchor = captureScrollAnchor();
+    sidebar.classList.toggle('open');
+  });
+  btnClose.addEventListener('click', () => {
+    liveAnchor = captureScrollAnchor();
+    closeSidebar();
+  });
   function closeSidebar() { sidebar.classList.remove('open'); }
 
   btnFontDec.addEventListener('click', () => {
+    const anchor = captureScrollAnchor();
     fontSize = Math.max(12, fontSize - 1);
-    applyFontSize(); savePrefs();
+    applyFontSize();
+    savePrefs();
+    requestAnimationFrame(() => restoreScrollAnchor(anchor));
   });
   btnFontInc.addEventListener('click', () => {
+    const anchor = captureScrollAnchor();
     fontSize = Math.min(40, fontSize + 1);
-    applyFontSize(); savePrefs();
+    applyFontSize();
+    savePrefs();
+    requestAnimationFrame(() => restoreScrollAnchor(anchor));
   });
 
   btnLhDec.addEventListener('click', () => {
+    const anchor = captureScrollAnchor();
     lineHeight = Math.max(1.2, +(lineHeight - 0.1).toFixed(1));
-    applyLineHeight(); savePrefs();
+    applyLineHeight();
+    savePrefs();
+    requestAnimationFrame(() => restoreScrollAnchor(anchor));
   });
   btnLhInc.addEventListener('click', () => {
+    const anchor = captureScrollAnchor();
     lineHeight = Math.min(3.5, +(lineHeight + 0.1).toFixed(1));
-    applyLineHeight(); savePrefs();
+    applyLineHeight();
+    savePrefs();
+    requestAnimationFrame(() => restoreScrollAnchor(anchor));
   });
 
   fontSelect.addEventListener('change', () => {
+    const anchor = captureScrollAnchor();
     fontFamily = fontSelect.value;
-    applyFont(); savePrefs();
+    applyFont();
+    savePrefs();
+    requestAnimationFrame(() => restoreScrollAnchor(anchor));
   });
 
   btnTheme.addEventListener('click', () => {
@@ -283,7 +356,11 @@
 
   // ── Keyboard ─────────────────────────────────────────────────────────────────
   document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.key === '\\') { e.preventDefault(); sidebar.classList.toggle('open'); }
+    if (e.ctrlKey && e.key === '\\') {
+      e.preventDefault();
+      liveAnchor = captureScrollAnchor();
+      sidebar.classList.toggle('open');
+    }
   });
 
   document.addEventListener('visibilitychange', () => {
