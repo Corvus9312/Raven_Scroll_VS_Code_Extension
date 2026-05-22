@@ -59,7 +59,14 @@ export class ReaderViewProvider implements vscode.WebviewViewProvider {
                     break;
                 }
                 case 'openNextFile':
-                    await this.loadFile(vscode.Uri.parse(msg.uriKey));
+                    if (msg.uriKey.startsWith('drive://')) {
+                        const { fileId, folderId } = this.parseDriveKey(msg.uriKey);
+                        const buffer = await this.driveClient.downloadFile(fileId);
+                        const uriKey = folderId ? `drive://${folderId}/${fileId}` : `drive://${fileId}`;
+                        await this.loadBuffer(buffer, msg.fileName ?? fileId, uriKey);
+                    } else {
+                        await this.loadFile(vscode.Uri.parse(msg.uriKey));
+                    }
                     break;
                 case 'savePrefs':
                     await this.context.globalState.update('corvusTxtReader.prefs', msg.prefs as ReaderPrefs);
@@ -116,9 +123,16 @@ export class ReaderViewProvider implements vscode.WebviewViewProvider {
 
     // ── Progress helpers ──────────────────────────────────────────────────────
 
+    private parseDriveKey(uriKey: string): { fileId: string; folderId?: string } {
+        const raw   = uriKey.slice('drive://'.length);
+        const slash = raw.indexOf('/');
+        if (slash === -1) { return { fileId: raw }; }
+        return { fileId: raw.slice(slash + 1), folderId: raw.slice(0, slash) };
+    }
+
     private async readProgress(uriKey: string, fileUri?: vscode.Uri): Promise<number> {
         if (uriKey.startsWith('drive://')) {
-            const fileId = uriKey.replace('drive://', '');
+            const { fileId } = this.parseDriveKey(uriKey);
             return (await this.driveClient.getProgress(fileId)).scrollTop;
         }
         if (fileUri) {
@@ -133,7 +147,8 @@ export class ReaderViewProvider implements vscode.WebviewViewProvider {
 
     private async writeProgress(uriKey: string, scrollTop: number, percent: number): Promise<void> {
         if (uriKey.startsWith('drive://')) {
-            await this.driveClient.saveProgress(uriKey.replace('drive://', ''), scrollTop, percent);
+            const { fileId } = this.parseDriveKey(uriKey);
+            await this.driveClient.saveProgress(fileId, scrollTop, percent);
         } else {
             try {
                 const fileUri = vscode.Uri.parse(uriKey);
@@ -147,8 +162,28 @@ export class ReaderViewProvider implements vscode.WebviewViewProvider {
         this.onProgressSaved?.();
     }
 
-    private async findNextFile(uriKey: string): Promise<{ exists: boolean; name?: string; uriKey?: string }> {
-        if (uriKey.startsWith('drive://')) { return { exists: false }; }
+    private async findNextFile(uriKey: string): Promise<{ exists: boolean; name?: string; fileName?: string; uriKey?: string }> {
+        if (uriKey.startsWith('drive://')) {
+            const { fileId, folderId } = this.parseDriveKey(uriKey);
+            if (!folderId) { return { exists: false }; }
+            try {
+                const files = await this.driveClient.listFiles(folderId);
+                const txts  = files
+                    .filter(f => f.mimeType !== 'application/vnd.google-apps.folder' && f.name.toLowerCase().endsWith('.txt'))
+                    .sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
+                const idx = txts.findIndex(f => f.id === fileId);
+                if (idx >= 0 && idx < txts.length - 1) {
+                    const next = txts[idx + 1];
+                    return {
+                        exists:   true,
+                        name:     next.name.replace(/\.txt$/i, ''),
+                        fileName: next.name,
+                        uriKey:   `drive://${folderId}/${next.id}`,
+                    };
+                }
+            } catch { /* ignore */ }
+            return { exists: false };
+        }
         try {
             const fileUri = vscode.Uri.parse(uriKey);
             const dir     = vscode.Uri.joinPath(fileUri, '..');

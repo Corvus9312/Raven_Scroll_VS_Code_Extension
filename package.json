@@ -2,7 +2,7 @@
   "name": "corvus9312-bookreader",
   "displayName": "Corvus9312 BookReader",
   "description": "A comfortable TXT reader with chapter navigation, custom fonts, and reading progress",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "corvus",
   "engines": { "vscode": "^1.74.0" },
   "categories": ["Other"],

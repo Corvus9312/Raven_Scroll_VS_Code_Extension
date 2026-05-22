@@ -57,7 +57,7 @@
     if (data.type === 'nextFile') {
       if (data.exists) {
         btnNextBook.textContent = data.name;
-        btnNextBook.onclick = () => vscode.postMessage({ type: 'openNextFile', uriKey: data.uriKey });
+        btnNextBook.onclick = () => vscode.postMessage({ type: 'openNextFile', uriKey: data.uriKey, fileName: data.fileName });
         nextBookBanner.style.display = 'block';
       }
     }
@@ -101,17 +101,12 @@
 
     liveAnchor = null; // reset anchor for new file
 
-    if (savedProgress > 0) {
-      requestAnimationFrame(() => {
-        readerScroll.scrollTop = savedProgress;
-        updateProgress();
-        syncActiveChapter();
-        liveAnchor = captureScrollAnchor();
-      });
-    } else {
+    requestAnimationFrame(() => {
+      readerScroll.scrollTop = savedProgress;
       updateProgress();
+      syncActiveChapter();
       liveAnchor = captureScrollAnchor();
-    }
+    });
   }
 
   // ── Scroll anchor ────────────────────────────────────────────────────────────

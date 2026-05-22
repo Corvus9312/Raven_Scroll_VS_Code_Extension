@@ -38,9 +38,12 @@ export class DriveProvider implements vscode.TreeDataProvider<DriveNode> {
             const files = await this.client.listFiles(folderId);
             const filtered = files.filter(f => f.mimeType === FOLDER_MIME || f.name.toLowerCase().endsWith('.txt'));
             return Promise.all(filtered.map(async f => {
-                if (f.mimeType === FOLDER_MIME) { return new DriveFolderNode(f); }
+                if (f.mimeType === FOLDER_MIME) {
+                    const stats = await this.getFolderStats(f.id);
+                    return new DriveFolderNode(f, stats);
+                }
                 const { percent } = await this.client.getProgress(f.id);
-                return new DriveFileNode(f, percent);
+                return new DriveFileNode(f, percent, folderId);
             }));
         } catch (err: any) {
             vscode.window.showErrorMessage(`Google Drive 錯誤：${err.message}`);
@@ -79,6 +82,21 @@ export class DriveProvider implements vscode.TreeDataProvider<DriveNode> {
         return this.navStack.length > 0;
     }
 
+    private async getFolderStats(folderId: string): Promise<{ completed: number; total: number }> {
+        try {
+            const files = await this.client.listFiles(folderId);
+            const txts  = files.filter(f => f.mimeType !== FOLDER_MIME && f.name.toLowerCase().endsWith('.txt'));
+            let completed = 0;
+            for (const f of txts) {
+                const { percent } = await this.client.getProgress(f.id);
+                if (percent >= 100) { completed++; }
+            }
+            return { completed, total: txts.length };
+        } catch {
+            return { completed: 0, total: 0 };
+        }
+    }
+
     private getCurrentRoot(): string {
         if (this.navStack.length > 0) {
             return this.navStack[this.navStack.length - 1];
@@ -111,15 +129,20 @@ class DriveSignInNode extends vscode.TreeItem {
 }
 
 export class DriveFolderNode extends vscode.TreeItem {
-    constructor(public readonly file: DriveFile) {
+    constructor(public readonly file: DriveFile, stats?: { completed: number; total: number }) {
         super(file.name, vscode.TreeItemCollapsibleState.Collapsed);
         this.iconPath     = new vscode.ThemeIcon('folder');
         this.contextValue = 'driveFolder';
+        if (stats && stats.total > 0) {
+            this.description = stats.completed >= stats.total
+                ? '✓ 全部完結'
+                : stats.completed > 0 ? `✓ ${stats.completed} / ${stats.total}` : undefined;
+        }
     }
 }
 
 export class DriveFileNode extends vscode.TreeItem {
-    constructor(public readonly file: DriveFile, percent?: number) {
+    constructor(public readonly file: DriveFile, percent?: number, folderId?: string) {
         super(file.name.replace(/\.txt$/i, ''), vscode.TreeItemCollapsibleState.None);
         this.iconPath     = new vscode.ThemeIcon('book');
         this.contextValue = 'driveFile';
@@ -129,7 +152,7 @@ export class DriveFileNode extends vscode.TreeItem {
         this.command = {
             command:   'corvusTxtReader.openDriveFile',
             title:     '開啟',
-            arguments: [file.id, file.name],
+            arguments: [file.id, file.name, folderId],
         };
     }
 }

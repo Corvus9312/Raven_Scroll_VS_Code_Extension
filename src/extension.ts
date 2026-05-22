@@ -175,12 +175,13 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.commands.registerCommand(
             'corvusTxtReader.openDriveFile',
-            async (fileId: string, fileName: string) => {
+            async (fileId: string, fileName: string, folderId?: string) => {
                 await vscode.window.withProgress(
                     { location: vscode.ProgressLocation.Notification, title: `載入 ${fileName.replace(/\.txt$/i, '')}…` },
                     async () => {
                         const buffer = await driveClient.downloadFile(fileId);
-                        await readerViewProvider.loadBuffer(buffer, fileName, `drive://${fileId}`);
+                        const uriKey = folderId ? `drive://${folderId}/${fileId}` : `drive://${fileId}`;
+                        await readerViewProvider.loadBuffer(buffer, fileName, uriKey);
                     }
                 );
             }
