@@ -6,9 +6,8 @@ npx @vscode/vsce package --no-dependencies --allow-missing-repository --out rele
 if %errorlevel% neq 0 (
     echo.
     echo Build failed!
-    pause
+    exit /b 1
 ) else (
     echo.
     echo Done! VSIX file is ready.
-    pause
 )
