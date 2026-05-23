@@ -61,9 +61,9 @@ VSCode 擴充套件，讓你在 VSCode 裡舒適地閱讀 TXT 小說或文字書
 
 ### 安裝
 
-1. 從 `release/` 資料夾取得 `.vsix` 檔案
+1. 前往 [GitHub Releases](https://github.com/Corvus9312/Raven_Scroll_VS_Code_Extension/releases) 下載最新的 `.vsix` 檔案
 2. 在 VSCode 中開啟指令面板（`Ctrl+Shift+P`），執行 **Extensions: Install from VSIX…**
-3. 選擇 `.vsix` 檔案安裝
+3. 選擇下載的 `.vsix` 檔案安裝
 
 ### 首次使用
 
