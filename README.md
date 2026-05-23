@@ -1,4 +1,4 @@
-# Corvus9312 BookReader
+# Raven's Scroll
 
 VSCode 擴充套件，讓你在 VSCode 裡舒適地閱讀 TXT 小說或文字書籍。支援章節導覽、自訂字型、閱讀進度記錄，以及 Google Drive 雲端書庫。
 

@@ -1,6 +1,6 @@
 {
-  "name": "corvus9312-bookreader",
-  "displayName": "Corvus9312 BookReader",
+  "name": "ravens-scroll",
+  "displayName": "Raven's Scroll",
   "description": "A comfortable TXT reader with chapter navigation, custom fonts, and reading progress",
   "version": "0.1.1",
   "publisher": "corvus",
@@ -10,7 +10,7 @@
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "Corvus9312 BookReader",
+      "title": "Raven's Scroll",
       "properties": {
         "corvusTxtReader.driveFolderUrl": {
           "type": "string",
@@ -32,7 +32,7 @@
     "customEditors": [
       {
         "viewType": "corvusTxtReader.reader",
-        "displayName": "Corvus9312 BookReader",
+        "displayName": "Raven's Scroll",
         "selector": [{ "filenamePattern": "*.txt" }],
         "priority": "default"
       }
@@ -41,14 +41,14 @@
       "activitybar": [
         {
           "id": "corvus-txt-reader",
-          "title": "Corvus9312 BookReader",
+          "title": "Raven's Scroll",
           "icon": "media/icon.svg"
         }
       ],
       "panel": [
         {
           "id": "corvus-reader-panel",
-          "title": "Corvus9312 BookReader",
+          "title": "Raven's Scroll",
           "icon": "media/icon.svg"
         }
       ]
@@ -71,7 +71,7 @@
       "corvus-reader-panel": [
         {
           "id": "corvusTxtReader.readerView",
-          "name": "Corvus9312 BookReader",
+          "name": "Raven's Scroll",
           "type": "webview"
         }
       ]
