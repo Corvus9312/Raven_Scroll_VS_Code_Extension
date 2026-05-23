@@ -141,7 +141,10 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('corvusTxtReader.refreshDrive', () => driveProvider.refresh())
+        vscode.commands.registerCommand('corvusTxtReader.refreshDrive', () => {
+            driveClient.invalidateProgressCache();
+            driveProvider.refresh();
+        })
     );
     context.subscriptions.push(
         vscode.commands.registerCommand('corvusTxtReader.resetDriveFileProgress', async (node: any) => {

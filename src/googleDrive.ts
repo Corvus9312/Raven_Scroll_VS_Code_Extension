@@ -21,7 +21,7 @@ interface Credentials {
     client_secret: string;
 }
 
-type ProgressMap = Record<string, { scrollTop: number; percent: number }>;
+type ProgressMap = Record<string, { scrollTop: number; percent: number; updatedAt?: number }>;
 
 const SCOPES    = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.appdata';
 const CREDS_KEY = 'corvusTxtReader.driveCredentials';
@@ -57,6 +57,11 @@ export class GoogleDriveClient {
         vscode.window.showInformationMessage('已登出 Google Drive');
     }
 
+    invalidateProgressCache(): void {
+        this.progressFileId = undefined;
+        this.progressCache  = null;
+    }
+
     async isSignedIn(): Promise<boolean> {
         return !!(await this.context.secrets.get(TOKEN_KEY));
     }
@@ -87,7 +92,7 @@ export class GoogleDriveClient {
     async saveProgress(fileId: string, scrollTop: number, percent: number): Promise<void> {
         try {
             const cache = await this.loadProgressCache();
-            cache[fileId] = { scrollTop, percent };
+            cache[fileId] = { scrollTop, percent, updatedAt: Date.now() };
             const token = await this.getAccessToken();
             const body  = JSON.stringify(cache);
             if (this.progressFileId) {
