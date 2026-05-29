@@ -7,8 +7,11 @@ export function getNonce(): string {
 
 export function decodeBytes(bytes: Uint8Array): string {
     let data = bytes;
-    if (data[0] === 0xEF && data[1] === 0xBB && data[2] === 0xBF) {
+    const hasBom = data[0] === 0xEF && data[1] === 0xBB && data[2] === 0xBF;
+    if (hasBom) {
         data = data.slice(3);
+        // BOM is authoritative: decode as UTF-8 lax (replace invalid bytes), never fall back to CJK
+        return new TextDecoder('utf-8').decode(data);
     }
     try {
         return new TextDecoder('utf-8', { fatal: true }).decode(data);
