@@ -5,3 +5,4 @@ tsconfig.json
 .gitignore
 .claude/**
 **/*.map
+media/credentials.json
