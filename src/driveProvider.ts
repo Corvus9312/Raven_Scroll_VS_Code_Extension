@@ -89,7 +89,7 @@ export class DriveProvider implements vscode.TreeDataProvider<DriveNode> {
             let completed = 0;
             for (const f of txts) {
                 const { percent } = await this.client.getProgress(f.id);
-                if (percent >= 100) { completed++; }
+                if (percent >= 95) { completed++; }
             }
             return { completed, total: txts.length };
         } catch {
@@ -147,7 +147,7 @@ export class DriveFileNode extends vscode.TreeItem {
         this.iconPath     = new vscode.ThemeIcon('book');
         this.contextValue = 'driveFile';
         if (percent && percent > 0) {
-            this.description = percent >= 100 ? '✓ 完結' : `${percent}%`;
+            this.description = percent >= 95 ? '✓ 完結' : `${percent}%`;
         }
         this.command = {
             command:   'corvusTxtReader.openDriveFile',

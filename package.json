@@ -2,7 +2,7 @@
   "name": "ravens-scroll",
   "displayName": "Raven's Scroll",
   "description": "A comfortable TXT reader with chapter navigation, custom fonts, and reading progress",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "corvus",
   "engines": { "vscode": "^1.74.0" },
   "categories": ["Other"],

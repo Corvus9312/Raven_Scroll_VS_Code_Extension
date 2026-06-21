@@ -26,12 +26,13 @@ export function decodeBytes(bytes: Uint8Array): string {
 
 export function buildReaderHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
     const nonce = getNonce();
-    const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'reader.css'));
-    const jsUri  = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'reader.js'));
+    const cssUri     = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'reader.css'));
+    const jsUri      = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'reader.js'));
+    const lxgwCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'fonts', 'lxgw', 'lxgwwenkaitc-regular.css'));
     const csp = [
         `default-src 'none'`,
-        `style-src ${webview.cspSource} 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net`,
-        `font-src https://fonts.gstatic.com https://cdn.jsdelivr.net`,
+        `style-src ${webview.cspSource} 'unsafe-inline'`,
+        `font-src ${webview.cspSource}`,
         `script-src 'nonce-${nonce}'`,
     ].join('; ');
 
@@ -41,10 +42,7 @@ export function buildReaderHtml(webview: vscode.Webview, extensionUri: vscode.Ur
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="${csp}">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cutive+Mono&display=swap">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-tc-webfont@latest/style.css">
+  <link rel="stylesheet" href="${lxgwCssUri}">
   <link rel="stylesheet" href="${cssUri}">
   <title>TXT Reader</title>
 </head>
@@ -80,7 +78,6 @@ export function buildReaderHtml(webview: vscode.Webview, extensionUri: vscode.Ur
           <option value="sans">黑體</option>
           <option value="kaiti">楷體</option>
           <option value="fangsong">仿宋</option>
-          <option value="cutive">Cutive Mono</option>
         </select>
         <button id="btn-theme" title="切換深色／淺色">◑</button>
       </div>

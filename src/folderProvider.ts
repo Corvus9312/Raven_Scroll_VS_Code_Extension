@@ -86,8 +86,8 @@ class FolderNode extends vscode.TreeItem {
         try {
             const files = fs.readdirSync(folderPath).filter((f: string) => f.toLowerCase().endsWith('.txt'));
             if (files.length > 0) {
-                const started = files.filter((f: string) => readLocalPercent(path.join(folderPath, f)) !== null).length;
-                node.description = `${started} / ${files.length}`;
+                const completed = files.filter((f: string) => (readLocalPercent(path.join(folderPath, f)) ?? 0) >= 95).length;
+                node.description = `${completed} / ${files.length}`;
             }
         } catch { /* ignore */ }
         return node;
@@ -111,7 +111,7 @@ class FileNode extends vscode.TreeItem {
         const node    = new FileNode(filePath);
         const percent = readLocalPercent(filePath);
         if (percent !== null) {
-            node.description = percent < 0 ? '閱讀中' : (percent >= 100 ? '✓ 完結' : `${percent}%`);
+            node.description = percent < 0 ? '閱讀中' : (percent >= 95 ? '✓ 完結' : `${percent}%`);
         }
         return node;
     }

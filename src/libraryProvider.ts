@@ -35,7 +35,7 @@ class LibraryItem extends vscode.TreeItem {
 
         const percent = readLocalPercent(filePath);
         if (percent !== null) {
-            this.description = percent < 0 ? '閱讀中' : (percent >= 100 ? '✓ 完結' : `${percent}%`);
+            this.description = percent < 0 ? '閱讀中' : (percent >= 95 ? '✓ 完結' : `${percent}%`);
         }
     }
 }

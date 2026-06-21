@@ -9,7 +9,6 @@
     'sans':     "'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif",
     'kaiti':    "'KaiTi', 'STKaiti', 'DFKai-SB', cursive, serif",
     'fangsong': "'FangSong', 'STFangsong', 'FangSong_GB2312', serif",
-    'cutive':   "'Cutive Mono', 'Courier New', monospace",
   };
 
   let chapters = [];
