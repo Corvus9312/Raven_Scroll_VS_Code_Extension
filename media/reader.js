@@ -12,6 +12,7 @@
   };
 
   let chapters = [];
+  let mode = 'txt';
   let fontSize = 14;
   let lineHeight = 1.3;
   let fontFamily = 'serif';
@@ -48,7 +49,12 @@
   const progressLabel = $('progress-label');
   const readerScroll  = $('reader-scroll');
   const contentEl     = $('content');
+  const epubContentEl = $('epub-content');
   const loadingEl     = $('loading');
+
+  // The element that carries the book text (a <pre> for TXT, a <div> for EPUB).
+  // Font / size / line-height are applied to whichever is active.
+  let activeContentEl = contentEl;
 
   // ── Message from extension ──────────────────────────────────────────────────
   window.addEventListener('message', ({ data }) => {
@@ -75,28 +81,44 @@
     }
   }
 
-  function init({ text, title, savedProgress, prefs, uriKey }) {
+  function init(data) {
+    const { title, savedProgress, prefs, uriKey } = data;
     saveProgressNow(); // save previous file before switching
     currentUriKey = uriKey ?? '';
     nextFileRequested = false;
     nextBookBanner.style.display = 'none';
+    mode       = data.mode === 'epub' ? 'epub' : 'txt';
     fontSize   = prefs.fontSize   ?? 14;
     lineHeight = prefs.lineHeight ?? 1.3;
     fontFamily = prefs.fontFamily ?? 'serif';
     theme      = prefs.theme      ?? 'dark';
+
+    bookTitle.textContent = title;
+
+    if (mode === 'epub') {
+      // Chapters come from the EPUB's own table of contents; each carries the id
+      // of an element in the rendered HTML to scroll to.
+      chapters = (data.chapters || []).map(c => ({ title: c.title, elId: c.anchor }));
+      epubContentEl.innerHTML = data.html || '';
+      activeContentEl = epubContentEl;
+      contentEl.style.display = 'none';
+      epubContentEl.style.display = 'block';
+    } else {
+      chapters = detectChapters(data.text).map(c => ({ title: c.title, lineIdx: c.lineIdx, elId: 'ch-' + c.lineIdx }));
+      renderText(data.text);
+      activeContentEl = contentEl;
+      epubContentEl.style.display = 'none';
+      contentEl.style.display = 'block';
+    }
 
     applyFontSize();
     applyLineHeight();
     applyFont();
     applyTheme();
 
-    bookTitle.textContent = title;
-    chapters = detectChapters(text);
-    renderText(text);
     buildChapterNav();
 
     loadingEl.style.display = 'none';
-    contentEl.style.display = 'block';
 
     liveAnchor = null; // reset anchor for new file
 
@@ -218,7 +240,7 @@
   function jumpTo(idx) {
     const ch = chapters[idx];
     if (!ch) { return; }
-    const el = document.getElementById(`ch-${ch.lineIdx}`);
+    const el = document.getElementById(ch.elId);
     if (el) {
       const r = readerScroll.getBoundingClientRect();
       const target = readerScroll.scrollTop + (el.getBoundingClientRect().top - r.top) - 20;
@@ -245,7 +267,7 @@
     const top = readerScroll.getBoundingClientRect().top;
     let best = 0;
     for (let i = 0; i < chapters.length; i++) {
-      const el = document.getElementById(`ch-${chapters[i].lineIdx}`);
+      const el = document.getElementById(chapters[i].elId);
       if (el && el.getBoundingClientRect().top <= top + 80) { best = i; } else { break; }
     }
     setActiveChapter(best);
@@ -339,9 +361,9 @@
     applyTheme(); savePrefs();
   });
 
-  function applyFontSize()   { contentEl.style.fontSize   = fontSize + 'px'; fontLabel.textContent = String(fontSize); }
-  function applyLineHeight() { contentEl.style.lineHeight = String(lineHeight); lhLabel.textContent = lineHeight.toFixed(1); }
-  function applyFont()       { contentEl.style.fontFamily = FONT_FAMILIES[fontFamily] ?? FONT_FAMILIES['serif']; fontSelect.value = fontFamily; }
+  function applyFontSize()   { activeContentEl.style.fontSize   = fontSize + 'px'; fontLabel.textContent = String(fontSize); }
+  function applyLineHeight() { activeContentEl.style.lineHeight = String(lineHeight); lhLabel.textContent = lineHeight.toFixed(1); }
+  function applyFont()       { activeContentEl.style.fontFamily = FONT_FAMILIES[fontFamily] ?? FONT_FAMILIES['serif']; fontSelect.value = fontFamily; }
   function applyTheme()      { document.body.classList.toggle('light', theme === 'light'); }
 
   function savePrefs() {

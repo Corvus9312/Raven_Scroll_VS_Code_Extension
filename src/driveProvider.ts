@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { GoogleDriveClient, DriveFile } from './googleDrive';
+import { isBookFile, stripBookExt } from './utils';
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder';
 
@@ -36,7 +37,7 @@ export class DriveProvider implements vscode.TreeDataProvider<DriveNode> {
 
         try {
             const files = await this.client.listFiles(folderId);
-            const filtered = files.filter(f => f.mimeType === FOLDER_MIME || f.name.toLowerCase().endsWith('.txt'));
+            const filtered = files.filter(f => f.mimeType === FOLDER_MIME || isBookFile(f.name));
             return Promise.all(filtered.map(async f => {
                 if (f.mimeType === FOLDER_MIME) {
                     const stats = await this.getFolderStats(f.id);
@@ -85,7 +86,7 @@ export class DriveProvider implements vscode.TreeDataProvider<DriveNode> {
     private async getFolderStats(folderId: string): Promise<{ completed: number; total: number }> {
         try {
             const files = await this.client.listFiles(folderId);
-            const txts  = files.filter(f => f.mimeType !== FOLDER_MIME && f.name.toLowerCase().endsWith('.txt'));
+            const txts  = files.filter(f => f.mimeType !== FOLDER_MIME && isBookFile(f.name));
             let completed = 0;
             for (const f of txts) {
                 const { percent } = await this.client.getProgress(f.id);
@@ -143,7 +144,7 @@ export class DriveFolderNode extends vscode.TreeItem {
 
 export class DriveFileNode extends vscode.TreeItem {
     constructor(public readonly file: DriveFile, percent?: number, folderId?: string) {
-        super(file.name.replace(/\.txt$/i, ''), vscode.TreeItemCollapsibleState.None);
+        super(stripBookExt(file.name), vscode.TreeItemCollapsibleState.None);
         this.iconPath     = new vscode.ThemeIcon('book');
         this.contextValue = 'driveFile';
         if (percent && percent > 0) {

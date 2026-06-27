@@ -1,5 +1,20 @@
 import * as vscode from 'vscode';
 
+// ── Supported book formats ──────────────────────────────────────────────────────
+
+export function isEpub(name: string): boolean {
+    return name.toLowerCase().endsWith('.epub');
+}
+
+export function isBookFile(name: string): boolean {
+    const n = name.toLowerCase();
+    return n.endsWith('.txt') || n.endsWith('.epub');
+}
+
+export function stripBookExt(name: string): string {
+    return name.replace(/\.(txt|epub)$/i, '');
+}
+
 export function getNonce(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     return Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -33,6 +48,7 @@ export function buildReaderHtml(webview: vscode.Webview, extensionUri: vscode.Ur
         `default-src 'none'`,
         `style-src ${webview.cspSource} 'unsafe-inline'`,
         `font-src ${webview.cspSource}`,
+        `img-src data:`,
         `script-src 'nonce-${nonce}'`,
     ].join('; ');
 
@@ -88,6 +104,7 @@ export function buildReaderHtml(webview: vscode.Webview, extensionUri: vscode.Ur
       <div id="reader-body">
         <div id="loading">載入中…</div>
         <pre id="content"></pre>
+        <div id="epub-content"></div>
         <div id="next-book-banner">
           <p>已到結尾</p>
           <button id="btn-next-book"></button>

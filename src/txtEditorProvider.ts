@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { buildReaderHtml, decodeBytes } from './utils';
-import { ReaderPrefs, DEFAULT_PREFS } from './readerViewProvider';
+import { buildReaderHtml } from './utils';
+import { ReaderPrefs, DEFAULT_PREFS, buildContentMsg } from './readerViewProvider';
 
 type ProgressMap = Record<string, number>;
 
@@ -54,16 +54,15 @@ export class TxtEditorProvider implements vscode.CustomReadonlyEditorProvider {
         const fileUri = document.uri.toString();
         const progress = this.context.globalState.get<ProgressMap>(TxtEditorProvider.PROGRESS_KEY, {});
         const prefs    = this.context.globalState.get<ReaderPrefs>(TxtEditorProvider.PREFS_KEY, DEFAULT_PREFS);
-        const text     = decodeBytes(await vscode.workspace.fs.readFile(document.uri));
-        const title    = path.basename(document.uri.fsPath);
+        const bytes    = await vscode.workspace.fs.readFile(document.uri);
+        const content  = buildContentMsg(bytes, path.basename(document.uri.fsPath));
 
         const disposable = webviewPanel.webview.onDidReceiveMessage(async (msg) => {
             switch (msg.type) {
                 case 'ready':
                     webviewPanel.webview.postMessage({
                         type: 'loadContent',
-                        text,
-                        title,
+                        ...content,
                         savedProgress: progress[fileUri] ?? 0,
                         prefs,
                         uriKey: fileUri,

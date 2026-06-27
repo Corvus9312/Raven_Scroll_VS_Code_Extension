@@ -271,6 +271,41 @@ body {
   line-height: 1.3;
 }
 
+/* ── EPUB (HTML) content ── */
+#epub-content {
+  display: none;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+/* The book's own fonts and colours are overridden so the user's font choice and
+   the reader theme always win; structural formatting (headings, bold/italic,
+   lists, paragraphs) is preserved. */
+#epub-content * {
+  font-family: inherit !important;
+  color: inherit !important;
+  background-color: transparent !important;
+  max-width: 100%;
+}
+#epub-content img,
+#epub-content svg,
+#epub-content image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1em auto;
+}
+#epub-content p  { margin: 0 0 0.8em; }
+#epub-content h1, #epub-content h2, #epub-content h3,
+#epub-content h4, #epub-content h5, #epub-content h6 {
+  margin: 1.4em 0 0.6em;
+  color: var(--active-text) !important;
+  line-height: 1.3;
+}
+#epub-content a { color: var(--accent) !important; text-decoration: none; }
+#epub-content section + section { margin-top: 1.5em; }
+
 /* ── Next book banner ── */
 #next-book-banner {
   display: none;

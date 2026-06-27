@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { isBookFile, stripBookExt } from './utils';
 
 type TreeNode = FolderNode | FileNode;
 
@@ -26,7 +27,7 @@ export class FolderProvider implements vscode.TreeDataProvider<TreeNode> {
         if (element instanceof FolderNode) {
             try {
                 const files = fs.readdirSync(element.folderPath)
-                    .filter((f: string) => f.toLowerCase().endsWith('.txt'))
+                    .filter((f: string) => isBookFile(f))
                     .sort((a: string, b: string) => a.localeCompare(b, 'zh-TW'));
                 return Promise.all(files.map((f: string) => FileNode.create(path.join(element.folderPath, f))));
             } catch {
@@ -39,7 +40,7 @@ export class FolderProvider implements vscode.TreeDataProvider<TreeNode> {
     async addFolder(): Promise<void> {
         const uris = await vscode.window.showOpenDialog({
             canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
-            title: '選擇包含 TXT 檔案的資料夾',
+            title: '選擇包含 TXT / EPUB 檔案的資料夾',
         });
         if (!uris?.length) { return; }
         const folderPath = uris[0].fsPath;
@@ -84,7 +85,7 @@ class FolderNode extends vscode.TreeItem {
     static create(folderPath: string): FolderNode {
         const node = new FolderNode(folderPath);
         try {
-            const files = fs.readdirSync(folderPath).filter((f: string) => f.toLowerCase().endsWith('.txt'));
+            const files = fs.readdirSync(folderPath).filter((f: string) => isBookFile(f));
             if (files.length > 0) {
                 const completed = files.filter((f: string) => (readLocalPercent(path.join(folderPath, f)) ?? 0) >= 95).length;
                 node.description = `${completed} / ${files.length}`;
@@ -96,7 +97,7 @@ class FolderNode extends vscode.TreeItem {
 
 class FileNode extends vscode.TreeItem {
     constructor(public readonly filePath: string) {
-        super(path.basename(filePath, '.txt'), vscode.TreeItemCollapsibleState.None);
+        super(stripBookExt(path.basename(filePath)), vscode.TreeItemCollapsibleState.None);
         this.tooltip      = filePath;
         this.iconPath     = new vscode.ThemeIcon('book');
         this.contextValue = 'txtFile';

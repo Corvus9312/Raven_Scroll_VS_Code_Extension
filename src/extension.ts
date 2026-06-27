@@ -6,6 +6,7 @@ import { FolderProvider } from './folderProvider';
 import { ReaderViewProvider } from './readerViewProvider';
 import { GoogleDriveClient } from './googleDrive';
 import { DriveProvider } from './driveProvider';
+import { stripBookExt } from './utils';
 
 export function activate(context: vscode.ExtensionContext): void {
     context.globalState.setKeysForSync([
@@ -180,7 +181,7 @@ export function activate(context: vscode.ExtensionContext): void {
             'corvusTxtReader.openDriveFile',
             async (fileId: string, fileName: string, folderId?: string) => {
                 await vscode.window.withProgress(
-                    { location: vscode.ProgressLocation.Notification, title: `載入 ${fileName.replace(/\.txt$/i, '')}…` },
+                    { location: vscode.ProgressLocation.Notification, title: `載入 ${stripBookExt(fileName)}…` },
                     async () => {
                         const buffer = await driveClient.downloadFile(fileId);
                         const uriKey = folderId ? `drive://${folderId}/${fileId}` : `drive://${fileId}`;

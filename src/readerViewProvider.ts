@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { buildReaderHtml, decodeBytes } from './utils';
+import { buildReaderHtml, decodeBytes, isBookFile, isEpub, stripBookExt } from './utils';
+import { parseEpub } from './epub';
 import { GoogleDriveClient } from './googleDrive';
 
 export interface ReaderPrefs {
@@ -11,6 +12,28 @@ export interface ReaderPrefs {
 }
 
 export const DEFAULT_PREFS: ReaderPrefs = { fontSize: 14, lineHeight: 1.2, fontFamily: 'lxgw', theme: 'dark' };
+
+/** Decode raw bytes into a webview content message — plain text or parsed EPUB. */
+export function buildContentMsg(bytes: Uint8Array, fileName: string): object {
+    if (isEpub(fileName)) {
+        try {
+            const book = parseEpub(bytes);
+            return {
+                mode: 'epub',
+                html: book.html,
+                chapters: book.chapters,
+                title: book.title || stripBookExt(fileName),
+            };
+        } catch (err: any) {
+            return {
+                mode: 'txt',
+                text: `無法開啟此 EPUB：${err?.message ?? err}`,
+                title: stripBookExt(fileName),
+            };
+        }
+    }
+    return { mode: 'txt', text: decodeBytes(bytes), title: stripBookExt(fileName) };
+}
 
 export class ReaderViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'corvusTxtReader.readerView';
@@ -77,41 +100,38 @@ export class ReaderViewProvider implements vscode.WebviewViewProvider {
 
     async loadFile(uri: vscode.Uri): Promise<void> {
         const bytes  = await vscode.workspace.fs.readFile(uri);
-        const text   = decodeBytes(bytes);
         const uriKey = uri.toString();
         const prefs  = this.context.globalState.get<ReaderPrefs>('corvusTxtReader.prefs', DEFAULT_PREFS);
+        const fileName = path.basename(uri.fsPath);
 
+        const content = buildContentMsg(bytes, fileName);
         const msg = {
             type: 'loadContent',
-            text,
-            title: path.basename(uri.fsPath),
+            ...content,
             savedProgress: await this.readProgress(uriKey, uri),
             prefs,
             uriKey,
         };
 
-        if (this.view?.webview) {
-            await this.view.webview.postMessage(msg);
-            this.view.show(true);
-        } else {
-            this.pendingMsg = msg;
-            await vscode.commands.executeCommand(`${ReaderViewProvider.viewType}.focus`);
-        }
+        await this.postOrQueue(msg);
     }
 
     async loadBuffer(buffer: Buffer, fileName: string, uriKey: string): Promise<void> {
-        const text  = decodeBytes(new Uint8Array(buffer));
         const prefs = this.context.globalState.get<ReaderPrefs>('corvusTxtReader.prefs', DEFAULT_PREFS);
 
+        const content = buildContentMsg(new Uint8Array(buffer), fileName);
         const msg = {
             type: 'loadContent',
-            text,
-            title: fileName.replace(/\.txt$/i, ''),
+            ...content,
             savedProgress: await this.readProgress(uriKey),
             prefs,
             uriKey,
         };
 
+        await this.postOrQueue(msg);
+    }
+
+    private async postOrQueue(msg: object): Promise<void> {
         if (this.view?.webview) {
             await this.view.webview.postMessage(msg);
             this.view.show(true);
@@ -169,14 +189,14 @@ export class ReaderViewProvider implements vscode.WebviewViewProvider {
             try {
                 const files = await this.driveClient.listFiles(folderId);
                 const txts  = files
-                    .filter(f => f.mimeType !== 'application/vnd.google-apps.folder' && f.name.toLowerCase().endsWith('.txt'))
+                    .filter(f => f.mimeType !== 'application/vnd.google-apps.folder' && isBookFile(f.name))
                     .sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
                 const idx = txts.findIndex(f => f.id === fileId);
                 if (idx >= 0 && idx < txts.length - 1) {
                     const next = txts[idx + 1];
                     return {
                         exists:   true,
-                        name:     next.name.replace(/\.txt$/i, ''),
+                        name:     stripBookExt(next.name),
                         fileName: next.name,
                         uriKey:   `drive://${folderId}/${next.id}`,
                     };
@@ -190,7 +210,7 @@ export class ReaderViewProvider implements vscode.WebviewViewProvider {
             const base    = path.basename(fileUri.fsPath);
             const entries = await vscode.workspace.fs.readDirectory(dir);
             const txts    = entries
-                .filter(([n, t]) => t === vscode.FileType.File && n.toLowerCase().endsWith('.txt'))
+                .filter(([n, t]) => t === vscode.FileType.File && isBookFile(n))
                 .map(([n]) => n)
                 .sort((a, b) => a.localeCompare(b, 'zh-TW'));
             const idx = txts.indexOf(base);
@@ -198,7 +218,7 @@ export class ReaderViewProvider implements vscode.WebviewViewProvider {
                 const nextName = txts[idx + 1];
                 return {
                     exists: true,
-                    name:   nextName.replace(/\.txt$/i, ''),
+                    name:   stripBookExt(nextName),
                     uriKey: vscode.Uri.joinPath(dir, nextName).toString(),
                 };
             }

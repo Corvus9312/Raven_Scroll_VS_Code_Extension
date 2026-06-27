@@ -33,7 +33,7 @@
       {
         "viewType": "corvusTxtReader.reader",
         "displayName": "Raven's Scroll",
-        "selector": [{ "filenamePattern": "*.txt" }],
+        "selector": [{ "filenamePattern": "*.txt" }, { "filenamePattern": "*.epub" }],
         "priority": "default"
       }
     ],

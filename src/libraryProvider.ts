@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { TxtEditorProvider } from './txtEditorProvider';
+import { stripBookExt } from './utils';
 
 export class LibraryProvider implements vscode.TreeDataProvider<LibraryItem> {
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<LibraryItem | undefined | null | void>();
@@ -23,7 +24,7 @@ export class LibraryProvider implements vscode.TreeDataProvider<LibraryItem> {
 
 class LibraryItem extends vscode.TreeItem {
     constructor(public readonly filePath: string) {
-        super(path.basename(filePath, '.txt'), vscode.TreeItemCollapsibleState.None);
+        super(stripBookExt(path.basename(filePath)), vscode.TreeItemCollapsibleState.None);
         this.tooltip      = filePath;
         this.iconPath     = new vscode.ThemeIcon('book');
         this.contextValue = 'libraryItem';
