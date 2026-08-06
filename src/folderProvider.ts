@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { isBookFile, stripBookExt } from './utils';
+import { describeFolderProgress, describeProgress, isBookFile, stripBookExt } from './core/book';
+import { readFolderProgress, readLocalProgress } from './core/localProgress';
+import { FOLDERS_KEY } from './keys';
 
 type TreeNode = FolderNode | FileNode;
 
 export class FolderProvider implements vscode.TreeDataProvider<TreeNode> {
-    public static readonly FOLDERS_KEY = 'corvusTxtReader.folders';
-
     private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeNode | undefined | null | void>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
@@ -19,17 +19,15 @@ export class FolderProvider implements vscode.TreeDataProvider<TreeNode> {
 
     async getChildren(element?: TreeNode): Promise<TreeNode[]> {
         if (!element) {
-            const folders = this.context.globalState.get<string[]>(FolderProvider.FOLDERS_KEY, []);
-            return Promise.all(
-                folders.filter(f => fs.existsSync(f)).map(f => FolderNode.create(f))
-            );
+            const folders = this.context.globalState.get<string[]>(FOLDERS_KEY, []);
+            return folders.filter(f => fs.existsSync(f)).map(f => FolderNode.create(f));
         }
         if (element instanceof FolderNode) {
             try {
                 const files = fs.readdirSync(element.folderPath)
                     .filter((f: string) => isBookFile(f))
                     .sort((a: string, b: string) => a.localeCompare(b, 'zh-TW'));
-                return Promise.all(files.map((f: string) => FileNode.create(path.join(element.folderPath, f))));
+                return files.map((f: string) => FileNode.create(path.join(element.folderPath, f)));
             } catch {
                 return [];
             }
@@ -44,33 +42,21 @@ export class FolderProvider implements vscode.TreeDataProvider<TreeNode> {
         });
         if (!uris?.length) { return; }
         const folderPath = uris[0].fsPath;
-        const folders = this.context.globalState.get<string[]>(FolderProvider.FOLDERS_KEY, []);
+        const folders = this.context.globalState.get<string[]>(FOLDERS_KEY, []);
         if (!folders.includes(folderPath)) {
             folders.push(folderPath);
-            await this.context.globalState.update(FolderProvider.FOLDERS_KEY, folders);
+            await this.context.globalState.update(FOLDERS_KEY, folders);
             this.refresh();
         }
     }
 
     async removeFolder(node: FolderNode): Promise<void> {
-        const folders = this.context.globalState.get<string[]>(FolderProvider.FOLDERS_KEY, []);
+        const folders = this.context.globalState.get<string[]>(FOLDERS_KEY, []);
         await this.context.globalState.update(
-            FolderProvider.FOLDERS_KEY,
+            FOLDERS_KEY,
             folders.filter(f => f !== node.folderPath)
         );
         this.refresh();
-    }
-}
-
-function readLocalPercent(filePath: string): number | null {
-    const progressPath = path.join(path.dirname(filePath), `.corvus.${path.basename(filePath)}.json`);
-    try {
-        const data = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
-        if (typeof data.percent === 'number') { return data.percent; }
-        if (typeof data.scrollTop === 'number' && data.scrollTop > 0) { return -1; } // old format
-        return null;
-    } catch {
-        return null;
     }
 }
 
@@ -84,13 +70,7 @@ class FolderNode extends vscode.TreeItem {
 
     static create(folderPath: string): FolderNode {
         const node = new FolderNode(folderPath);
-        try {
-            const files = fs.readdirSync(folderPath).filter((f: string) => isBookFile(f));
-            if (files.length > 0) {
-                const completed = files.filter((f: string) => (readLocalPercent(path.join(folderPath, f)) ?? 0) >= 95).length;
-                node.description = `${completed} / ${files.length}`;
-            }
-        } catch { /* ignore */ }
+        node.description = describeFolderProgress(readFolderProgress(folderPath));
         return node;
     }
 }
@@ -109,11 +89,8 @@ class FileNode extends vscode.TreeItem {
     }
 
     static create(filePath: string): FileNode {
-        const node    = new FileNode(filePath);
-        const percent = readLocalPercent(filePath);
-        if (percent !== null) {
-            node.description = percent < 0 ? '閱讀中' : (percent >= 95 ? '✓ 完結' : `${percent}%`);
-        }
+        const node = new FileNode(filePath);
+        node.description = describeProgress(readLocalProgress(filePath));
         return node;
     }
 }

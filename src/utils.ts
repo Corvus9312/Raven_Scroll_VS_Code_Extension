@@ -1,42 +1,8 @@
 import * as vscode from 'vscode';
 
-// ── Supported book formats ──────────────────────────────────────────────────────
-
-export function isEpub(name: string): boolean {
-    return name.toLowerCase().endsWith('.epub');
-}
-
-export function isBookFile(name: string): boolean {
-    const n = name.toLowerCase();
-    return n.endsWith('.txt') || n.endsWith('.epub');
-}
-
-export function stripBookExt(name: string): string {
-    return name.replace(/\.(txt|epub)$/i, '');
-}
-
-export function getNonce(): string {
+function getNonce(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     return Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-}
-
-export function decodeBytes(bytes: Uint8Array): string {
-    let data = bytes;
-    const hasBom = data[0] === 0xEF && data[1] === 0xBB && data[2] === 0xBF;
-    if (hasBom) {
-        data = data.slice(3);
-        // BOM is authoritative: decode as UTF-8 lax (replace invalid bytes), never fall back to CJK
-        return new TextDecoder('utf-8').decode(data);
-    }
-    try {
-        return new TextDecoder('utf-8', { fatal: true }).decode(data);
-    } catch {
-        try {
-            return new TextDecoder('gb18030').decode(data);
-        } catch {
-            return new TextDecoder('utf-8').decode(data);
-        }
-    }
 }
 
 export function buildReaderHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {

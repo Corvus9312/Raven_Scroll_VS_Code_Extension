@@ -81,10 +81,35 @@
     }
   }
 
-  function init(data) {
+  // The bundled 文楷 is ~100 unicode-range subsets declared `font-display: swap`,
+  // so the browser paints fallback text first and swaps each subset in as it
+  // arrives — a visible font flash, followed by a reflow that would throw off the
+  // restored scroll position. Instead: lay the text out invisibly (which is what
+  // makes the browser request the subsets at all), wait for them, then reveal.
+  const WEBFONT_KEY = 'lxgw';
+  const FONT_WAIT_MS = 3000;
+
+  function waitForFont() {
+    if (fontFamily !== WEBFONT_KEY || !document.fonts) { return Promise.resolve(); }
+    // Force layout so the browser resolves which subsets this book needs and
+    // starts fetching them; without this `ready` can settle having loaded nothing.
+    void activeContentEl.offsetHeight;
+    return Promise.race([
+      document.fonts.ready,
+      new Promise(resolve => setTimeout(resolve, FONT_WAIT_MS)),
+    ]);
+  }
+
+  // Guards against a second book being opened while the first is still waiting.
+  let loadGeneration = 0;
+
+  async function init(data) {
+    const generation = ++loadGeneration;
     const { title, savedProgress, prefs, uriKey } = data;
     saveProgressNow(); // save previous file before switching
     currentUriKey = uriKey ?? '';
+    // Lets the extension restore this tab after a window reload.
+    vscode.setState({ uriKey: currentUriKey, fileName: data.fileName ?? '' });
     nextFileRequested = false;
     nextBookBanner.style.display = 'none';
     mode       = data.mode === 'epub' ? 'epub' : 'txt';
@@ -118,9 +143,19 @@
 
     buildChapterNav();
 
-    loadingEl.style.display = 'none';
+    // Laid out (so the subsets load) but not yet shown. `visibility` rather than
+    // `display` — a `display: none` subtree is never laid out, so no font would
+    // ever be requested and the wait below would return instantly.
+    activeContentEl.style.visibility = 'hidden';
+    loadingEl.style.display = '';
 
     liveAnchor = null; // reset anchor for new file
+
+    await waitForFont();
+    if (generation !== loadGeneration) { return; } // superseded by a newer book
+
+    activeContentEl.style.visibility = '';
+    loadingEl.style.display = 'none';
 
     requestAnimationFrame(() => {
       readerScroll.scrollTop = savedProgress;

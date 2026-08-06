@@ -2,10 +2,14 @@
   "name": "ravens-scroll",
   "displayName": "Raven's Scroll",
   "description": "A comfortable TXT reader with chapter navigation, custom fonts, and reading progress",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "publisher": "corvus",
-  "engines": { "vscode": "^1.74.0" },
-  "categories": ["Other"],
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
@@ -20,7 +24,10 @@
         "corvusTxtReader.openIn": {
           "type": "string",
           "default": "panel",
-          "enum": ["editor", "panel"],
+          "enum": [
+            "editor",
+            "panel"
+          ],
           "enumDescriptions": [
             "在主要編輯區開啟（標籤頁）",
             "在下方面板開啟（可拖曳至主側邊欄或次側邊欄）"
@@ -33,7 +40,14 @@
       {
         "viewType": "corvusTxtReader.reader",
         "displayName": "Raven's Scroll",
-        "selector": [{ "filenamePattern": "*.txt" }, { "filenamePattern": "*.epub" }],
+        "selector": [
+          {
+            "filenamePattern": "*.txt"
+          },
+          {
+            "filenamePattern": "*.epub"
+          }
+        ],
         "priority": "default"
       }
     ],
@@ -72,7 +86,8 @@
         {
           "id": "corvusTxtReader.readerView",
           "name": "Raven's Scroll",
-          "type": "webview"
+          "type": "webview",
+          "when": "config.corvusTxtReader.openIn != editor"
         }
       ]
     },
@@ -144,9 +159,43 @@
       {
         "command": "corvusTxtReader.resetDriveRoot",
         "title": "回到最上層"
+      },
+      {
+        "command": "corvusTxtReader.openInEditor",
+        "title": "改為在主編輯區開啟",
+        "category": "Raven's Scroll",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "corvusTxtReader.openInPanel",
+        "title": "改為在下方面板開啟",
+        "category": "Raven's Scroll",
+        "icon": "$(layout-panel)"
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "corvusTxtReader.openInEditor",
+          "when": "config.corvusTxtReader.openIn == panel"
+        },
+        {
+          "command": "corvusTxtReader.openInPanel",
+          "when": "config.corvusTxtReader.openIn == editor"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "corvusTxtReader.openInEditor",
+          "when": "config.corvusTxtReader.openIn == panel && (resourceExtname =~ /\\.(txt|epub)/i || activeWebviewPanelId == corvusTxtReader.readerPanel)",
+          "group": "corvusReader@1"
+        },
+        {
+          "command": "corvusTxtReader.openInPanel",
+          "when": "config.corvusTxtReader.openIn == editor && (resourceExtname =~ /\\.(txt|epub)/i || activeWebviewPanelId == corvusTxtReader.readerPanel)",
+          "group": "corvusReader@1"
+        }
+      ],
       "view/title": [
         {
           "command": "corvusTxtReader.addFolder",
@@ -182,9 +231,34 @@
           "command": "corvusTxtReader.driveGoUp",
           "when": "view == corvusTxtReader.drive && corvusTxtReader.driveCanGoUp",
           "group": "navigation"
+        },
+        {
+          "command": "corvusTxtReader.openInEditor",
+          "when": "view == corvusTxtReader.readerView",
+          "group": "navigation@9"
+        },
+        {
+          "command": "corvusTxtReader.openInEditor",
+          "when": "view =~ /^corvusTxtReader\\.(folders|library|drive)$/ && config.corvusTxtReader.openIn == panel",
+          "group": "9_openIn"
+        },
+        {
+          "command": "corvusTxtReader.openInPanel",
+          "when": "view =~ /^corvusTxtReader\\.(folders|library|drive)$/ && config.corvusTxtReader.openIn == editor",
+          "group": "9_openIn"
         }
       ],
       "view/item/context": [
+        {
+          "command": "corvusTxtReader.openInEditor",
+          "when": "viewItem =~ /^(txtFile|driveFile|libraryItem)$/ && config.corvusTxtReader.openIn == panel",
+          "group": "3_openIn"
+        },
+        {
+          "command": "corvusTxtReader.openInPanel",
+          "when": "viewItem =~ /^(txtFile|driveFile|libraryItem)$/ && config.corvusTxtReader.openIn == editor",
+          "group": "3_openIn"
+        },
         {
           "command": "corvusTxtReader.removeFolder",
           "when": "view == corvusTxtReader.folders && viewItem == txtFolder",
@@ -226,11 +300,14 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "typecheck": "tsc --noEmit -p ./",
+    "test": "tsc -p ./ && node --test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.74.0",
     "@types/node": "^16.0.0",
+    "@types/vscode": "^1.74.0",
+    "jsdom": "^30.0.1",
     "typescript": "^5.0.0"
   }
 }

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { GoogleDriveClient, DriveFile } from './googleDrive';
-import { isBookFile, stripBookExt } from './utils';
+import { describePercent, isBookFile, stripBookExt } from './core/book';
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder';
 
@@ -129,7 +129,7 @@ class DriveSignInNode extends vscode.TreeItem {
     }
 }
 
-export class DriveFolderNode extends vscode.TreeItem {
+class DriveFolderNode extends vscode.TreeItem {
     constructor(public readonly file: DriveFile, stats?: { completed: number; total: number }) {
         super(file.name, vscode.TreeItemCollapsibleState.Collapsed);
         this.iconPath     = new vscode.ThemeIcon('folder');
@@ -142,14 +142,12 @@ export class DriveFolderNode extends vscode.TreeItem {
     }
 }
 
-export class DriveFileNode extends vscode.TreeItem {
+class DriveFileNode extends vscode.TreeItem {
     constructor(public readonly file: DriveFile, percent?: number, folderId?: string) {
         super(stripBookExt(file.name), vscode.TreeItemCollapsibleState.None);
         this.iconPath     = new vscode.ThemeIcon('book');
         this.contextValue = 'driveFile';
-        if (percent && percent > 0) {
-            this.description = percent >= 95 ? '✓ 完結' : `${percent}%`;
-        }
+        this.description  = describePercent(percent);
         this.command = {
             command:   'corvusTxtReader.openDriveFile',
             title:     '開啟',

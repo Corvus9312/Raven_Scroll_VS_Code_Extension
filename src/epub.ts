@@ -2,12 +2,12 @@ import * as zlib from 'zlib';
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
-export interface EpubChapter {
+interface EpubChapter {
     title: string;
     anchor: string; // element id in the rendered HTML to scroll to
 }
 
-export interface EpubBook {
+interface EpubBook {
     title: string;
     html: string;            // combined body HTML for all spine docs (images inlined)
     chapters: EpubChapter[]; // table of contents
